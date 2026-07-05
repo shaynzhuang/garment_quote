@@ -892,7 +892,10 @@ if (!template.includes('<!-- APP_SCRIPTS -->')) {
   throw new Error('Template is missing the <!-- APP_SCRIPTS --> placeholder');
 }
 
-const output = template.replace('<!-- APP_SCRIPTS -->', scripts);
+// Function replacer, not a string: the vendored xlsx.min.js contains many
+// literal `$&`/`$1`/... sequences that String.replace would otherwise
+// reinterpret as substitution patterns, corrupting the inlined library.
+const output = template.replace('<!-- APP_SCRIPTS -->', () => scripts);
 fs.writeFileSync(outputPath, output, 'utf8');
 console.log(`Built ${outputPath} (${(output.length / 1024).toFixed(0)} KB)`);
 ```
