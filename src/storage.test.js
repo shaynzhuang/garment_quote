@@ -36,3 +36,10 @@ test('deleteRecord removes only the matching record', () => {
   assert.equal(records.length, 1);
   assert.equal(records[0].styleNo, 'A002');
 });
+
+test('listRecords recovers to an empty array when stored data is corrupted', () => {
+  const backend = createMemoryBackend();
+  backend.setItem('garmentQuoteHistory', '{not valid json');
+  const storage = createStorage(backend);
+  assert.deepEqual(storage.listRecords(), []);
+});

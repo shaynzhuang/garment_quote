@@ -7,7 +7,11 @@ function createStorage(backend) {
   function listRecords() {
     const raw = store.getItem(STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw);
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return [];
+    }
   }
 
   function saveRecord(record) {
