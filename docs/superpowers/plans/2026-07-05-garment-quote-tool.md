@@ -784,10 +784,14 @@ git commit -m "Add HTML structure and CSS for quote/history tabs"
       const item = document.createElement('div');
       item.className = 'history-item';
       item.innerHTML =
-        '<img src="' + (record.photo || '') + '">' +
+        '<img>' +
         '<div class="info"><div class="style"></div><div class="meta"></div></div>' +
         '<span class="total"></span>' +
         '<button type="button" class="delete-btn">删除</button>';
+      // Assign via the DOM property, not string-concatenated into innerHTML:
+      // localStorage is user-editable via devtools, so a crafted `photo`
+      // value must not be parsed as markup.
+      item.querySelector('img').src = record.photo || '';
       item.querySelector('.style').textContent = record.styleNo || '(未命名)';
       item.querySelector('.meta').textContent = (record.savedAt || '').slice(0, 10);
       item.querySelector('.total').textContent = '￥' + Number(record.total).toFixed(2);
@@ -897,7 +901,7 @@ if (!template.includes('<!-- APP_SCRIPTS -->')) {
 // reinterpret as substitution patterns, corrupting the inlined library.
 const output = template.replace('<!-- APP_SCRIPTS -->', () => scripts);
 fs.writeFileSync(outputPath, output, 'utf8');
-console.log(`Built ${outputPath} (${(output.length / 1024).toFixed(0)} KB)`);
+console.log(`Built ${outputPath} (${(Buffer.byteLength(output, 'utf8') / 1024).toFixed(0)} KB)`);
 ```
 
 - [ ] **Step 2: 写最小 package.json**
