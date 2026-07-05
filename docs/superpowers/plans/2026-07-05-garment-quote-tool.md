@@ -13,7 +13,7 @@
 - 设计依据：`docs/superpowers/specs/2026-07-05-garment-quote-tool-design.md`，字段名、开关默认值、公式顺序（先加利润再乘税率）均以该文档为准，不重新讨论。
 - 最终交付物是**一个自包含的 `index.html`**（仓库根目录），由 `build.js` 从 `src/` 生成；`src/` 下的源文件才是编辑对象，`index.html` 不手工编辑。
 - 所有可测的计算/数据转换逻辑必须是纯函数，放进 `src/*.js`，同时兼容浏览器（挂到 `globalThis.XXX` 命名空间）和 Node（`module.exports`），用同一份代码、同一套测试跑两边。
-- 测试用 `node --test src/`（Node 22.19.0 已确认支持），不引入 Jest/Mocha 等 npm 依赖。
+- 测试用 `node --test`（不带路径参数，触发内置自动发现；Node 22.19.0 已确认支持——注意 `node --test src/` 这种"目录作为显式参数"的写法会被当成模块路径去 `require`，直接报 `MODULE_NOT_FOUND`，必须不带参数或用 `node --test src/**/*.test.js` glob），不引入 Jest/Mocha 等 npm 依赖。
 - SheetJS 库整份 vendor 进 `src/vendor/xlsx.min.js`（来自 `https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js`），不通过 CDN 在线加载，保证离线可用。
 - 移动端交互：所有数值输入用 `inputmode="decimal"`；开关用 checkbox 模拟的 toggle switch。
 - 每个任务完成后提交一次 git commit。
@@ -903,7 +903,7 @@ console.log(`Built ${outputPath} (${(output.length / 1024).toFixed(0)} KB)`);
   "name": "garment-quote-tool",
   "private": true,
   "scripts": {
-    "test": "node --test src/",
+    "test": "node --test",
     "build": "node build.js"
   }
 }
