@@ -1,0 +1,8 @@
+{
+  "name": "garment-quote-tool",
+  "private": true,
+  "scripts": {
+    "test": "node --test",
+    "build": "node build.js"
+  }
+}
