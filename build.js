@@ -22,4 +22,4 @@ if (!template.includes('<!-- APP_SCRIPTS -->')) {
 // instead of being interpreted as String.replace special patterns.
 const output = template.replace('<!-- APP_SCRIPTS -->', () => scripts);
 fs.writeFileSync(outputPath, output, 'utf8');
-console.log(`Built ${outputPath} (${(output.length / 1024).toFixed(0)} KB)`);
+console.log(`Built ${outputPath} (${(Buffer.byteLength(output, 'utf8') / 1024).toFixed(0)} KB)`);

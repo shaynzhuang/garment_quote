@@ -136,10 +136,11 @@
       const item = document.createElement('div');
       item.className = 'history-item';
       item.innerHTML =
-        '<img src="' + (record.photo || '') + '">' +
+        '<img>' +
         '<div class="info"><div class="style"></div><div class="meta"></div></div>' +
         '<span class="total"></span>' +
         '<button type="button" class="delete-btn">删除</button>';
+      item.querySelector('img').src = record.photo || '';
       item.querySelector('.style').textContent = record.styleNo || '(未命名)';
       item.querySelector('.meta').textContent = (record.savedAt || '').slice(0, 10);
       item.querySelector('.total').textContent = '￥' + Number(record.total).toFixed(2);
