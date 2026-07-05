@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>报价小工具</title>
+<style>
+  :root { --accent: #2563eb; --bg: #f5f5f7; --border: #ddd; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; background: var(--bg); color: #111; padding-bottom: 90px; }
+  .tabs { display: flex; position: sticky; top: 0; background: #fff; border-bottom: 1px solid var(--border); z-index: 10; }
+  .tab-btn { flex: 1; padding: 14px; text-align: center; border: none; background: none; font-size: 16px; }
+  .tab-btn.active { color: var(--accent); font-weight: 600; border-bottom: 2px solid var(--accent); }
+  .page { display: none; padding: 12px; }
+  .page.active { display: block; }
+  .field-row { display: flex; align-items: center; justify-content: space-between; background: #fff; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+  .field-row .label { font-size: 14px; color: #333; width: 120px; flex-shrink: 0; }
+  .field-row input[type=text], .field-row input[type=number] { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 8px; font-size: 16px; min-width: 0; margin-right: 8px; }
+  .field-row.off input[type=text], .field-row.off input[type=number] { opacity: .4; }
+  .switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: #ccc; border-radius: 24px; transition: .2s; cursor: pointer; }
+  .slider::before { content: ""; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+  .switch input:checked + .slider { background: var(--accent); }
+  .switch input:checked + .slider::before { transform: translateX(20px); }
+  .photo-box { width: 120px; height: 120px; border: 1px dashed #999; border-radius: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 12px; background: #fff; }
+  .photo-box img { width: 100%; height: 100%; object-fit: cover; }
+  .craft-row { display: flex; gap: 8px; margin-bottom: 6px; }
+  .craft-list.off { opacity: .4; }
+  .craft-row input[type=text] { flex: 2; border: 1px solid var(--border); border-radius: 8px; padding: 8px; font-size: 16px; }
+  .craft-row input[type=number] { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 8px; font-size: 16px; }
+  .craft-row button { border: none; background: #f3d1d1; border-radius: 8px; padding: 0 12px; }
+  .add-craft-btn { width: 100%; padding: 10px; border: 1px dashed var(--accent); background: none; color: var(--accent); border-radius: 8px; margin-bottom: 8px; }
+  .section-title { font-size: 13px; color: #888; margin: 16px 0 6px; }
+  .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--border); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; }
+  .bottom-bar .total { font-size: 22px; font-weight: 700; color: var(--accent); }
+  .bottom-bar button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 12px 18px; font-size: 15px; }
+  .history-item { display: flex; gap: 10px; background: #fff; border-radius: 10px; padding: 10px; margin-bottom: 8px; align-items: center; }
+  .history-item img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; background: #eee; }
+  .history-item .info { flex: 1; }
+  .history-item .info .style { font-weight: 600; }
+  .history-item .info .meta { font-size: 12px; color: #888; }
+  .history-item .total { font-weight: 700; color: var(--accent); margin-right: 8px; }
+  .history-item .delete-btn { border: none; background: #f3d1d1; border-radius: 8px; padding: 8px 10px; }
+  .export-btn { width: 100%; padding: 12px; border: none; background: var(--accent); color: #fff; border-radius: 8px; margin-bottom: 12px; font-size: 15px; }
+  .empty-hint { text-align: center; color: #999; padding: 30px 0; }
+</style>
+</head>
+<body>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="quote">报价</button>
+    <button class="tab-btn" data-tab="history">历史</button>
+  </div>
+
+  <div class="page active" id="page-quote">
+    <div class="photo-box" id="photo-box">
+      <span id="photo-placeholder">点击拍照</span>
+      <img id="photo-preview" style="display:none">
+    </div>
+    <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none">
+
+    <div class="field-row">
+      <span class="label">款号/备注</span>
+      <input type="text" id="styleNo" placeholder="如 A001">
+    </div>
+
+    <div class="section-title">材料</div>
+    <div class="field-row" id="row-material">
+      <span class="label">重量(克)</span>
+      <input type="number" inputmode="decimal" id="weightGrams">
+      <label class="switch"><input type="checkbox" id="materialOn" checked><span class="slider"></span></label>
+    </div>
+    <div class="field-row" id="row-material2">
+      <span class="label">纱线单价(元/公斤)</span>
+      <input type="number" inputmode="decimal" id="yarnPricePerKg">
+    </div>
+
+    <div class="section-title">织机</div>
+    <div class="field-row" id="row-machine">
+      <span class="label">织机时长(分钟)</span>
+      <input type="number" inputmode="decimal" id="minutes">
+      <label class="switch"><input type="checkbox" id="machineOn" checked><span class="slider"></span></label>
+    </div>
+    <div class="field-row" id="row-machine2">
+      <span class="label">织机单价(元/分钟)</span>
+      <input type="number" inputmode="decimal" id="ratePerMinute">
+    </div>
+
+    <div class="section-title">加工</div>
+    <div class="field-row" id="row-sewing">
+      <span class="label">缝盘(元)</span>
+      <input type="number" inputmode="decimal" id="sewingCost">
+      <label class="switch"><input type="checkbox" id="sewingOn" checked><span class="slider"></span></label>
+    </div>
+    <div class="field-row" id="row-aux">
+      <span class="label">辅料(元)</span>
+      <input type="number" inputmode="decimal" id="auxCost">
+      <label class="switch"><input type="checkbox" id="auxOn" checked><span class="slider"></span></label>
+    </div>
+    <div class="field-row" id="row-finishing">
+      <span class="label">后整(元)</span>
+      <input type="number" inputmode="decimal" id="finishingCost">
+      <label class="switch"><input type="checkbox" id="finishingOn" checked><span class="slider"></span></label>
+    </div>
+
+    <div class="section-title">
+      工艺
+      <label class="switch" style="float:right"><input type="checkbox" id="craftsOn" checked><span class="slider"></span></label>
+    </div>
+    <div id="craft-list" class="craft-list"></div>
+    <button type="button" class="add-craft-btn" id="add-craft-btn">＋添加工艺</button>
+
+    <div class="section-title">利润</div>
+    <div class="field-row" id="row-profit">
+      <span class="label">利润(元)</span>
+      <input type="number" inputmode="decimal" id="profit" value="0">
+      <label class="switch"><input type="checkbox" id="profitOn"><span class="slider"></span></label>
+    </div>
+
+    <div class="section-title">税</div>
+    <div class="field-row" id="row-tax">
+      <span class="label">税率</span>
+      <input type="number" inputmode="decimal" id="taxRate" value="0.13" step="0.01">
+      <label class="switch"><input type="checkbox" id="taxOn" checked><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="page" id="page-history">
+    <button type="button" class="export-btn" id="export-btn">导出Excel</button>
+    <div id="history-list"></div>
+    <div class="empty-hint" id="history-empty" style="display:none">暂无历史记录</div>
+  </div>
+
+  <div class="bottom-bar">
+    <span class="total" id="total-display">￥0.00</span>
+    <button type="button" id="save-btn">保存记录</button>
+  </div>
+
+  <!-- APP_SCRIPTS -->
+</body>
+</html>
