@@ -8,9 +8,11 @@
   :root { --accent: #2563eb; --bg: #f5f5f7; --border: #ddd; }
   * { box-sizing: border-box; }
   body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; background: var(--bg); color: #111; padding-bottom: 90px; }
-  .tabs { display: flex; position: sticky; top: 0; background: #fff; border-bottom: 1px solid var(--border); z-index: 10; }
+  .tabs { display: flex; align-items: stretch; position: sticky; top: 0; background: #fff; border-bottom: 1px solid var(--border); z-index: 10; }
   .tab-btn { flex: 1; padding: 14px; text-align: center; border: none; background: none; font-size: 16px; }
   .tab-btn.active { color: var(--accent); font-weight: 600; border-bottom: 2px solid var(--accent); }
+  .tab-action { flex: none; padding: 0 16px; border: none; border-left: 1px solid var(--border); background: none; color: #999; font-size: 14px; white-space: nowrap; }
+  .tab-action:active { color: var(--accent); }
   .page { display: none; padding: 12px; }
   .page.active { display: block; }
   .field-row { display: flex; align-items: center; justify-content: space-between; background: #fff; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
@@ -31,7 +33,6 @@
   .craft-row input[type=number] { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 8px; font-size: 16px; min-width: 0; }
   .craft-row button { border: none; background: #f3d1d1; border-radius: 8px; padding: 0 12px; }
   .add-craft-btn { width: 100%; padding: 10px; border: 1px dashed var(--accent); background: none; color: var(--accent); border-radius: 8px; margin-bottom: 8px; }
-  .clear-btn { border: none; background: none; color: #888; font-size: 14px; padding: 4px 8px; }
   .section-title { font-size: 13px; color: #888; margin: 16px 0 6px; }
   .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--border); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; }
   .bottom-bar .total { font-size: 22px; font-weight: 700; color: var(--accent); }
@@ -51,13 +52,10 @@
   <div class="tabs">
     <button class="tab-btn active" data-tab="quote">报价</button>
     <button class="tab-btn" data-tab="history">历史</button>
+    <button type="button" id="clear-btn" class="tab-action">清空</button>
   </div>
 
   <div class="page active" id="page-quote">
-    <div style="text-align:right; margin-bottom:8px;">
-      <button type="button" id="clear-btn" class="clear-btn">清空/新建</button>
-    </div>
-
     <div class="photo-box" id="photo-box">
       <span id="photo-placeholder">点击拍照/选图</span>
       <img id="photo-preview" style="display:none">

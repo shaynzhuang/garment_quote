@@ -128,6 +128,7 @@
   function switchTab(name) {
     els.tabs.forEach((btn) => btn.classList.toggle('active', btn.dataset.tab === name));
     Object.keys(els.pages).forEach((key) => els.pages[key].classList.toggle('active', key === name));
+    els.clearBtn.style.display = name === 'quote' ? '' : 'none';
     if (name === 'history') renderHistory();
   }
 
