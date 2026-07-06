@@ -43,3 +43,28 @@ test('listRecords recovers to an empty array when stored data is corrupted', () 
   const storage = createStorage(backend);
   assert.deepEqual(storage.listRecords(), []);
 });
+
+test('listCustomers returns empty array when nothing saved', () => {
+  const storage = createStorage(createMemoryBackend());
+  assert.deepEqual(storage.listCustomers(), []);
+});
+
+test('addCustomer adds a trimmed name and persists it', () => {
+  const storage = createStorage(createMemoryBackend());
+  storage.addCustomer('  张三  ');
+  assert.deepEqual(storage.listCustomers(), ['张三']);
+});
+
+test('addCustomer does not add duplicates', () => {
+  const storage = createStorage(createMemoryBackend());
+  storage.addCustomer('张三');
+  storage.addCustomer('张三');
+  assert.deepEqual(storage.listCustomers(), ['张三']);
+});
+
+test('addCustomer ignores empty/blank names', () => {
+  const storage = createStorage(createMemoryBackend());
+  storage.addCustomer('');
+  storage.addCustomer('   ');
+  assert.deepEqual(storage.listCustomers(), []);
+});

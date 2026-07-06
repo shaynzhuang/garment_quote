@@ -31,6 +31,7 @@
   .craft-row input[type=number] { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 8px; font-size: 16px; min-width: 0; }
   .craft-row button { border: none; background: #f3d1d1; border-radius: 8px; padding: 0 12px; }
   .add-craft-btn { width: 100%; padding: 10px; border: 1px dashed var(--accent); background: none; color: var(--accent); border-radius: 8px; margin-bottom: 8px; }
+  .clear-btn { border: none; background: none; color: #888; font-size: 14px; padding: 4px 8px; }
   .section-title { font-size: 13px; color: #888; margin: 16px 0 6px; }
   .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--border); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; }
   .bottom-bar .total { font-size: 22px; font-weight: 700; color: var(--accent); }
@@ -53,11 +54,21 @@
   </div>
 
   <div class="page active" id="page-quote">
+    <div style="text-align:right; margin-bottom:8px;">
+      <button type="button" id="clear-btn" class="clear-btn">清空/新建</button>
+    </div>
+
     <div class="photo-box" id="photo-box">
       <span id="photo-placeholder">点击拍照/选图</span>
       <img id="photo-preview" style="display:none">
     </div>
     <input type="file" id="photo-input" accept="image/*" style="display:none">
+
+    <div class="field-row">
+      <span class="label">客户名称</span>
+      <input type="text" id="customerName" list="customerNameList" placeholder="选择或输入客户名">
+      <datalist id="customerNameList"></datalist>
+    </div>
 
     <div class="field-row">
       <span class="label">款号/备注</span>
@@ -183,6 +194,7 @@ if (typeof module !== 'undefined' && module.exports) {
 </script>
 <script>
 const STORAGE_KEY = 'garmentQuoteHistory';
+const CUSTOMERS_KEY = 'garmentQuoteCustomers';
 
 function createStorage(backend) {
   const store = backend || (typeof localStorage !== 'undefined' ? localStorage : null);
@@ -215,10 +227,31 @@ function createStorage(backend) {
     return records;
   }
 
-  return { listRecords, saveRecord, deleteRecord };
+  function listCustomers() {
+    const raw = store.getItem(CUSTOMERS_KEY);
+    if (!raw) return [];
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  }
+
+  function addCustomer(name) {
+    const trimmed = (name || '').trim();
+    if (!trimmed) return listCustomers();
+    const customers = listCustomers();
+    if (!customers.includes(trimmed)) {
+      customers.push(trimmed);
+      store.setItem(CUSTOMERS_KEY, JSON.stringify(customers));
+    }
+    return listCustomers();
+  }
+
+  return { listRecords, saveRecord, deleteRecord, listCustomers, addCustomer };
 }
 
-const GarmentStorage = { createStorage, STORAGE_KEY };
+const GarmentStorage = { createStorage, STORAGE_KEY, CUSTOMERS_KEY };
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = GarmentStorage;
@@ -276,13 +309,14 @@ function formatCraftItems(items) {
 
 function buildExportRows(records) {
   const header = [
-    '日期', '款号', '重量(克)', '纱线单价(元/公斤)', '织机时长(分钟)', '织机单价(元/分钟)',
+    '日期', '客户名称', '款号', '重量(克)', '纱线单价(元/公斤)', '织机时长(分钟)', '织机单价(元/分钟)',
     '缝盘(元)', '辅料(元)', '后整(元)', '工艺明细',
     '材料开关', '织机开关', '缝盘开关', '辅料开关', '后整开关', '工艺开关',
     '利润(元)', '利润开关', '税率', '税开关', '总价(元)'
   ];
   const rows = (records || []).map((r) => [
     r.savedAt ? r.savedAt.slice(0, 10) : '',
+    r.customerName || '',
     r.styleNo || '',
     r.weightGrams, r.yarnPricePerKg, r.minutes, r.ratePerMinute,
     r.sewingCost, r.auxCost, r.finishingCost, formatCraftItems(r.craftItems),
@@ -355,6 +389,9 @@ w[f]=1}i[b]=f;}}for(g=l.s.r+n;g<=l.e.r;++g){if((T[g]||{}).hidden)continue;var A=
     photoInput: document.getElementById('photo-input'),
     photoPreview: document.getElementById('photo-preview'),
     photoPlaceholder: document.getElementById('photo-placeholder'),
+    clearBtn: document.getElementById('clear-btn'),
+    customerName: document.getElementById('customerName'),
+    customerNameList: document.getElementById('customerNameList'),
     styleNo: document.getElementById('styleNo'),
     weightGrams: document.getElementById('weightGrams'),
     yarnPricePerKg: document.getElementById('yarnPricePerKg'),
@@ -483,7 +520,8 @@ w[f]=1}i[b]=f;}}for(g=l.s.r+n;g<=l.e.r;++g){if((T[g]||{}).hidden)continue;var A=
         '<button type="button" class="delete-btn">删除</button>';
       item.querySelector('img').src = record.photo || '';
       item.querySelector('.style').textContent = record.styleNo || '(未命名)';
-      item.querySelector('.meta').textContent = (record.savedAt || '').slice(0, 10);
+      const date = (record.savedAt || '').slice(0, 10);
+      item.querySelector('.meta').textContent = record.customerName ? `${record.customerName} · ${date}` : date;
       item.querySelector('.total').textContent = '￥' + Number(record.total).toFixed(2);
       item.querySelector('.delete-btn').addEventListener('click', () => {
         storage.deleteRecord(record.id);
@@ -491,6 +529,45 @@ w[f]=1}i[b]=f;}}for(g=l.s.r+n;g<=l.e.r;++g){if((T[g]||{}).hidden)continue;var A=
       });
       els.historyList.appendChild(item);
     });
+  }
+
+  function renderCustomerOptions() {
+    const customers = storage.listCustomers();
+    els.customerNameList.innerHTML = '';
+    customers.forEach((name) => {
+      const option = document.createElement('option');
+      option.value = name;
+      els.customerNameList.appendChild(option);
+    });
+  }
+
+  function resetForm() {
+    els.customerName.value = '';
+    els.styleNo.value = '';
+    els.weightGrams.value = '';
+    els.yarnPricePerKg.value = '';
+    els.materialOn.checked = true;
+    els.minutes.value = '';
+    els.ratePerMinute.value = '';
+    els.machineOn.checked = true;
+    els.sewingCost.value = '';
+    els.sewingOn.checked = true;
+    els.auxCost.value = '';
+    els.auxOn.checked = true;
+    els.finishingCost.value = '';
+    els.finishingOn.checked = true;
+    els.craftsOn.checked = true;
+    els.craftList.innerHTML = '';
+    els.profit.value = '0';
+    els.profitOn.checked = false;
+    els.taxRate.value = '0.13';
+    els.taxOn.checked = true;
+    currentPhotoDataUrl = '';
+    els.photoInput.value = '';
+    els.photoPreview.src = '';
+    els.photoPreview.style.display = 'none';
+    els.photoPlaceholder.style.display = 'block';
+    recalc();
   }
 
   els.tabs.forEach((btn) => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
@@ -507,6 +584,8 @@ w[f]=1}i[b]=f;}}for(g=l.s.r+n;g<=l.e.r;++g){if((T[g]||{}).hidden)continue;var A=
 
   els.addCraftBtn.addEventListener('click', () => addCraftRow('', ''));
 
+  els.clearBtn.addEventListener('click', () => resetForm());
+
   [
     els.styleNo, els.weightGrams, els.yarnPricePerKg, els.materialOn,
     els.minutes, els.ratePerMinute, els.machineOn,
@@ -517,7 +596,10 @@ w[f]=1}i[b]=f;}}for(g=l.s.r+n;g<=l.e.r;++g){if((T[g]||{}).hidden)continue;var A=
 
   els.saveBtn.addEventListener('click', () => {
     const { fields, totalOptions, subtotal, total } = recalc();
+    storage.addCustomer(els.customerName.value);
+    renderCustomerOptions();
     storage.saveRecord({
+      customerName: els.customerName.value,
       styleNo: els.styleNo.value,
       photo: currentPhotoDataUrl,
       weightGrams: fields.weightGrams, yarnPricePerKg: fields.yarnPricePerKg, materialOn: fields.materialOn,
@@ -542,6 +624,7 @@ w[f]=1}i[b]=f;}}for(g=l.s.r+n;g<=l.e.r;++g){if((T[g]||{}).hidden)continue;var A=
     exportRecordsToXlsx(records);
   });
 
+  renderCustomerOptions();
   recalc();
 })();
 

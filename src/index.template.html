@@ -31,6 +31,7 @@
   .craft-row input[type=number] { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 8px; font-size: 16px; min-width: 0; }
   .craft-row button { border: none; background: #f3d1d1; border-radius: 8px; padding: 0 12px; }
   .add-craft-btn { width: 100%; padding: 10px; border: 1px dashed var(--accent); background: none; color: var(--accent); border-radius: 8px; margin-bottom: 8px; }
+  .clear-btn { border: none; background: none; color: #888; font-size: 14px; padding: 4px 8px; }
   .section-title { font-size: 13px; color: #888; margin: 16px 0 6px; }
   .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--border); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; }
   .bottom-bar .total { font-size: 22px; font-weight: 700; color: var(--accent); }
@@ -53,11 +54,21 @@
   </div>
 
   <div class="page active" id="page-quote">
+    <div style="text-align:right; margin-bottom:8px;">
+      <button type="button" id="clear-btn" class="clear-btn">清空/新建</button>
+    </div>
+
     <div class="photo-box" id="photo-box">
       <span id="photo-placeholder">点击拍照/选图</span>
       <img id="photo-preview" style="display:none">
     </div>
     <input type="file" id="photo-input" accept="image/*" style="display:none">
+
+    <div class="field-row">
+      <span class="label">客户名称</span>
+      <input type="text" id="customerName" list="customerNameList" placeholder="选择或输入客户名">
+      <datalist id="customerNameList"></datalist>
+    </div>
 
     <div class="field-row">
       <span class="label">款号/备注</span>

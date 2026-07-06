@@ -8,13 +8,14 @@ function formatCraftItems(items) {
 
 function buildExportRows(records) {
   const header = [
-    '日期', '款号', '重量(克)', '纱线单价(元/公斤)', '织机时长(分钟)', '织机单价(元/分钟)',
+    '日期', '客户名称', '款号', '重量(克)', '纱线单价(元/公斤)', '织机时长(分钟)', '织机单价(元/分钟)',
     '缝盘(元)', '辅料(元)', '后整(元)', '工艺明细',
     '材料开关', '织机开关', '缝盘开关', '辅料开关', '后整开关', '工艺开关',
     '利润(元)', '利润开关', '税率', '税开关', '总价(元)'
   ];
   const rows = (records || []).map((r) => [
     r.savedAt ? r.savedAt.slice(0, 10) : '',
+    r.customerName || '',
     r.styleNo || '',
     r.weightGrams, r.yarnPricePerKg, r.minutes, r.ratePerMinute,
     r.sewingCost, r.auxCost, r.finishingCost, formatCraftItems(r.craftItems),

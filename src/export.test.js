@@ -14,7 +14,7 @@ test('formatCraftItems joins name+amount pairs with slash', () => {
 
 test('buildExportRows produces a header row plus one row per record', () => {
   const records = [{
-    savedAt: '2026-07-05T10:00:00.000Z', styleNo: 'A001',
+    savedAt: '2026-07-05T10:00:00.000Z', customerName: '张三', styleNo: 'A001',
     weightGrams: 500, yarnPricePerKg: 40, minutes: 30, ratePerMinute: 2,
     sewingCost: 10, auxCost: 5, finishingCost: 8,
     craftItems: [{ name: '纽扣', amount: 15 }],
@@ -25,15 +25,16 @@ test('buildExportRows produces a header row plus one row per record', () => {
   const rows = buildExportRows(records);
   assert.equal(rows.length, 2);
   assert.deepEqual(rows[0], [
-    '日期', '款号', '重量(克)', '纱线单价(元/公斤)', '织机时长(分钟)', '织机单价(元/分钟)',
+    '日期', '客户名称', '款号', '重量(克)', '纱线单价(元/公斤)', '织机时长(分钟)', '织机单价(元/分钟)',
     '缝盘(元)', '辅料(元)', '后整(元)', '工艺明细',
     '材料开关', '织机开关', '缝盘开关', '辅料开关', '后整开关', '工艺开关',
     '利润(元)', '利润开关', '税率', '税开关', '总价(元)'
   ]);
   assert.equal(rows[1][0], '2026-07-05');
-  assert.equal(rows[1][1], 'A001');
-  assert.equal(rows[1][9], '纽扣15');
-  assert.equal(rows[1][10], '开');
-  assert.equal(rows[1][13], '关');
-  assert.equal(rows[1][20], 135.6);
+  assert.equal(rows[1][1], '张三');
+  assert.equal(rows[1][2], 'A001');
+  assert.equal(rows[1][10], '纽扣15');
+  assert.equal(rows[1][11], '开');
+  assert.equal(rows[1][14], '关');
+  assert.equal(rows[1][21], 135.6);
 });

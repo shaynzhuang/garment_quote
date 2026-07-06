@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'garmentQuoteHistory';
+const CUSTOMERS_KEY = 'garmentQuoteCustomers';
 
 function createStorage(backend) {
   const store = backend || (typeof localStorage !== 'undefined' ? localStorage : null);
@@ -31,10 +32,31 @@ function createStorage(backend) {
     return records;
   }
 
-  return { listRecords, saveRecord, deleteRecord };
+  function listCustomers() {
+    const raw = store.getItem(CUSTOMERS_KEY);
+    if (!raw) return [];
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  }
+
+  function addCustomer(name) {
+    const trimmed = (name || '').trim();
+    if (!trimmed) return listCustomers();
+    const customers = listCustomers();
+    if (!customers.includes(trimmed)) {
+      customers.push(trimmed);
+      store.setItem(CUSTOMERS_KEY, JSON.stringify(customers));
+    }
+    return listCustomers();
+  }
+
+  return { listRecords, saveRecord, deleteRecord, listCustomers, addCustomer };
 }
 
-const GarmentStorage = { createStorage, STORAGE_KEY };
+const GarmentStorage = { createStorage, STORAGE_KEY, CUSTOMERS_KEY };
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = GarmentStorage;

@@ -14,6 +14,9 @@
     photoInput: document.getElementById('photo-input'),
     photoPreview: document.getElementById('photo-preview'),
     photoPlaceholder: document.getElementById('photo-placeholder'),
+    clearBtn: document.getElementById('clear-btn'),
+    customerName: document.getElementById('customerName'),
+    customerNameList: document.getElementById('customerNameList'),
     styleNo: document.getElementById('styleNo'),
     weightGrams: document.getElementById('weightGrams'),
     yarnPricePerKg: document.getElementById('yarnPricePerKg'),
@@ -142,7 +145,8 @@
         '<button type="button" class="delete-btn">删除</button>';
       item.querySelector('img').src = record.photo || '';
       item.querySelector('.style').textContent = record.styleNo || '(未命名)';
-      item.querySelector('.meta').textContent = (record.savedAt || '').slice(0, 10);
+      const date = (record.savedAt || '').slice(0, 10);
+      item.querySelector('.meta').textContent = record.customerName ? `${record.customerName} · ${date}` : date;
       item.querySelector('.total').textContent = '￥' + Number(record.total).toFixed(2);
       item.querySelector('.delete-btn').addEventListener('click', () => {
         storage.deleteRecord(record.id);
@@ -150,6 +154,45 @@
       });
       els.historyList.appendChild(item);
     });
+  }
+
+  function renderCustomerOptions() {
+    const customers = storage.listCustomers();
+    els.customerNameList.innerHTML = '';
+    customers.forEach((name) => {
+      const option = document.createElement('option');
+      option.value = name;
+      els.customerNameList.appendChild(option);
+    });
+  }
+
+  function resetForm() {
+    els.customerName.value = '';
+    els.styleNo.value = '';
+    els.weightGrams.value = '';
+    els.yarnPricePerKg.value = '';
+    els.materialOn.checked = true;
+    els.minutes.value = '';
+    els.ratePerMinute.value = '';
+    els.machineOn.checked = true;
+    els.sewingCost.value = '';
+    els.sewingOn.checked = true;
+    els.auxCost.value = '';
+    els.auxOn.checked = true;
+    els.finishingCost.value = '';
+    els.finishingOn.checked = true;
+    els.craftsOn.checked = true;
+    els.craftList.innerHTML = '';
+    els.profit.value = '0';
+    els.profitOn.checked = false;
+    els.taxRate.value = '0.13';
+    els.taxOn.checked = true;
+    currentPhotoDataUrl = '';
+    els.photoInput.value = '';
+    els.photoPreview.src = '';
+    els.photoPreview.style.display = 'none';
+    els.photoPlaceholder.style.display = 'block';
+    recalc();
   }
 
   els.tabs.forEach((btn) => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
@@ -166,6 +209,8 @@
 
   els.addCraftBtn.addEventListener('click', () => addCraftRow('', ''));
 
+  els.clearBtn.addEventListener('click', () => resetForm());
+
   [
     els.styleNo, els.weightGrams, els.yarnPricePerKg, els.materialOn,
     els.minutes, els.ratePerMinute, els.machineOn,
@@ -176,7 +221,10 @@
 
   els.saveBtn.addEventListener('click', () => {
     const { fields, totalOptions, subtotal, total } = recalc();
+    storage.addCustomer(els.customerName.value);
+    renderCustomerOptions();
     storage.saveRecord({
+      customerName: els.customerName.value,
       styleNo: els.styleNo.value,
       photo: currentPhotoDataUrl,
       weightGrams: fields.weightGrams, yarnPricePerKg: fields.yarnPricePerKg, materialOn: fields.materialOn,
@@ -201,5 +249,6 @@
     exportRecordsToXlsx(records);
   });
 
+  renderCustomerOptions();
   recalc();
 })();
