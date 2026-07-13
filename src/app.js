@@ -39,6 +39,7 @@
     taxOn: document.getElementById('taxOn'),
     totalDisplay: document.getElementById('total-display'),
     saveBtn: document.getElementById('save-btn'),
+    saveAsNewBtn: document.getElementById('save-as-new-btn'),
     historyList: document.getElementById('history-list'),
     historyEmpty: document.getElementById('history-empty'),
     exportBtn: document.getElementById('export-btn')
@@ -164,7 +165,9 @@
   }
 
   function updateSaveButtonLabel() {
-    els.saveBtn.textContent = editingRecordId ? '更新记录' : '保存记录';
+    const editing = !!editingRecordId;
+    els.saveBtn.textContent = editing ? '更新记录' : '保存记录';
+    els.saveAsNewBtn.style.display = editing ? '' : 'none';
   }
 
   function loadRecordForEdit(record) {
@@ -269,13 +272,13 @@
     els.profit, els.profitOn, els.taxRate, els.taxOn
   ].forEach((el) => el.addEventListener('input', recalc));
 
-  els.saveBtn.addEventListener('click', () => {
+  function saveCurrentQuote(forceNew) {
     const { fields, totalOptions, subtotal, total } = recalc();
     storage.addCustomer(els.customerName.value);
     renderCustomerOptions();
-    const wasEditing = !!editingRecordId;
+    const wasUpdating = !forceNew && !!editingRecordId;
     storage.saveRecord({
-      id: editingRecordId || undefined,
+      id: forceNew ? undefined : (editingRecordId || undefined),
       customerName: els.customerName.value,
       styleNo: els.styleNo.value,
       photo: currentPhotoDataUrl,
@@ -291,8 +294,11 @@
     });
     editingRecordId = null;
     updateSaveButtonLabel();
-    alert(wasEditing ? '已更新历史记录' : '已保存到历史记录');
-  });
+    alert(wasUpdating ? '已更新历史记录' : '已保存到历史记录');
+  }
+
+  els.saveBtn.addEventListener('click', () => saveCurrentQuote(false));
+  els.saveAsNewBtn.addEventListener('click', () => saveCurrentQuote(true));
 
   els.exportBtn.addEventListener('click', () => {
     const records = storage.listRecords();
