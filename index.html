@@ -37,7 +37,8 @@
   .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--border); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; }
   .bottom-bar .total { font-size: 22px; font-weight: 700; color: var(--accent); }
   .bottom-bar button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 12px 18px; font-size: 15px; }
-  .history-item { display: flex; gap: 10px; background: #fff; border-radius: 10px; padding: 10px; margin-bottom: 8px; align-items: center; }
+  .history-item { display: flex; gap: 10px; background: #fff; border-radius: 10px; padding: 10px; margin-bottom: 8px; align-items: center; cursor: pointer; }
+  .history-item:active { background: #f0f4ff; }
   .history-item img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; background: #eee; }
   .history-item .info { flex: 1; }
   .history-item .info .style { font-weight: 600; }
@@ -209,7 +210,9 @@ function createStorage(backend) {
   }
 
   function saveRecord(record) {
-    const records = listRecords();
+    // Drop any existing record with the same id so editing-and-resaving
+    // updates it in place instead of appending a duplicate.
+    const records = listRecords().filter((r) => r.id !== record.id);
     const newRecord = Object.assign({}, record, {
       id: record.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       savedAt: record.savedAt || new Date().toISOString()
@@ -418,6 +421,7 @@ w[f]=1}i[b]=f;}}for(g=l.s.r+n;g<=l.e.r;++g){if((T[g]||{}).hidden)continue;var A=
   };
 
   let currentPhotoDataUrl = '';
+  let editingRecordId = null;
 
   function addCraftRow(name, amount) {
     const row = document.createElement('div');
@@ -522,12 +526,58 @@ w[f]=1}i[b]=f;}}for(g=l.s.r+n;g<=l.e.r;++g){if((T[g]||{}).hidden)continue;var A=
       const date = (record.savedAt || '').slice(0, 10);
       item.querySelector('.meta').textContent = record.customerName ? `${record.customerName} · ${date}` : date;
       item.querySelector('.total').textContent = '￥' + Number(record.total).toFixed(2);
-      item.querySelector('.delete-btn').addEventListener('click', () => {
+      item.querySelector('.delete-btn').addEventListener('click', (event) => {
+        event.stopPropagation();
         storage.deleteRecord(record.id);
         renderHistory();
       });
+      item.addEventListener('click', () => {
+        loadRecordForEdit(record);
+        switchTab('quote');
+      });
       els.historyList.appendChild(item);
     });
+  }
+
+  function updateSaveButtonLabel() {
+    els.saveBtn.textContent = editingRecordId ? '更新记录' : '保存记录';
+  }
+
+  function loadRecordForEdit(record) {
+    editingRecordId = record.id;
+    els.customerName.value = record.customerName || '';
+    els.styleNo.value = record.styleNo || '';
+    els.weightGrams.value = record.weightGrams || '';
+    els.yarnPricePerKg.value = record.yarnPricePerKg || '';
+    els.materialOn.checked = !!record.materialOn;
+    els.minutes.value = record.minutes || '';
+    els.ratePerMinute.value = record.ratePerMinute || '';
+    els.machineOn.checked = !!record.machineOn;
+    els.sewingCost.value = record.sewingCost || '';
+    els.sewingOn.checked = !!record.sewingOn;
+    els.auxCost.value = record.auxCost || '';
+    els.auxOn.checked = !!record.auxOn;
+    els.finishingCost.value = record.finishingCost || '';
+    els.finishingOn.checked = !!record.finishingOn;
+    els.craftsOn.checked = !!record.craftsOn;
+    els.craftList.innerHTML = '';
+    (record.craftItems || []).forEach((item) => addCraftRow(item.name, item.amount));
+    els.profit.value = record.profit != null ? record.profit : 0;
+    els.profitOn.checked = !!record.profitOn;
+    els.taxRate.value = record.taxRate != null ? record.taxRate : 0.13;
+    els.taxOn.checked = !!record.taxOn;
+    currentPhotoDataUrl = record.photo || '';
+    els.photoInput.value = '';
+    if (currentPhotoDataUrl) {
+      els.photoPreview.src = currentPhotoDataUrl;
+      els.photoPreview.style.display = 'block';
+      els.photoPlaceholder.style.display = 'none';
+    } else {
+      els.photoPreview.style.display = 'none';
+      els.photoPlaceholder.style.display = 'block';
+    }
+    recalc();
+    updateSaveButtonLabel();
   }
 
   function renderCustomerOptions() {
@@ -541,6 +591,8 @@ w[f]=1}i[b]=f;}}for(g=l.s.r+n;g<=l.e.r;++g){if((T[g]||{}).hidden)continue;var A=
   }
 
   function resetForm() {
+    editingRecordId = null;
+    updateSaveButtonLabel();
     els.customerName.value = '';
     els.styleNo.value = '';
     els.weightGrams.value = '';
@@ -597,7 +649,9 @@ w[f]=1}i[b]=f;}}for(g=l.s.r+n;g<=l.e.r;++g){if((T[g]||{}).hidden)continue;var A=
     const { fields, totalOptions, subtotal, total } = recalc();
     storage.addCustomer(els.customerName.value);
     renderCustomerOptions();
+    const wasEditing = !!editingRecordId;
     storage.saveRecord({
+      id: editingRecordId || undefined,
       customerName: els.customerName.value,
       styleNo: els.styleNo.value,
       photo: currentPhotoDataUrl,
@@ -611,7 +665,9 @@ w[f]=1}i[b]=f;}}for(g=l.s.r+n;g<=l.e.r;++g){if((T[g]||{}).hidden)continue;var A=
       taxRate: totalOptions.taxRate, taxOn: totalOptions.taxOn,
       subtotal, total
     });
-    alert('已保存到历史记录');
+    editingRecordId = null;
+    updateSaveButtonLabel();
+    alert(wasEditing ? '已更新历史记录' : '已保存到历史记录');
   });
 
   els.exportBtn.addEventListener('click', () => {

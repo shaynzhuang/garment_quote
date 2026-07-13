@@ -16,7 +16,9 @@ function createStorage(backend) {
   }
 
   function saveRecord(record) {
-    const records = listRecords();
+    // Drop any existing record with the same id so editing-and-resaving
+    // updates it in place instead of appending a duplicate.
+    const records = listRecords().filter((r) => r.id !== record.id);
     const newRecord = Object.assign({}, record, {
       id: record.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       savedAt: record.savedAt || new Date().toISOString()

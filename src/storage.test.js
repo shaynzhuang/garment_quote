@@ -37,6 +37,18 @@ test('deleteRecord removes only the matching record', () => {
   assert.equal(records[0].styleNo, 'A002');
 });
 
+test('saveRecord with an existing id updates that record in place instead of duplicating', () => {
+  const storage = createStorage(createMemoryBackend());
+  const r1 = storage.saveRecord({ styleNo: 'A001', total: 100 });
+  storage.saveRecord({ styleNo: 'A002', total: 200 });
+  storage.saveRecord({ id: r1.id, styleNo: 'A001-edited', total: 150 });
+  const records = storage.listRecords();
+  assert.equal(records.length, 2);
+  assert.equal(records[0].styleNo, 'A001-edited');
+  assert.equal(records[0].id, r1.id);
+  assert.equal(records[1].styleNo, 'A002');
+});
+
 test('listRecords recovers to an empty array when stored data is corrupted', () => {
   const backend = createMemoryBackend();
   backend.setItem('garmentQuoteHistory', '{not valid json');
