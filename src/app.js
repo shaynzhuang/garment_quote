@@ -1,7 +1,7 @@
 // src/app.js
 (function () {
   const { computeSubtotal, computeTotal } = GarmentCalc;
-  const { createStorage } = GarmentStorage;
+  const { createStorage, filterRecords, listRecordCustomers, listRecordMonths, UNSPECIFIED_CUSTOMER } = GarmentStorage;
   const { compressImageFile } = GarmentImage;
   const { exportRecordsToXlsx } = GarmentExport;
 
@@ -42,7 +42,10 @@
     saveAsNewBtn: document.getElementById('save-as-new-btn'),
     historyList: document.getElementById('history-list'),
     historyEmpty: document.getElementById('history-empty'),
-    exportBtn: document.getElementById('export-btn')
+    exportBtn: document.getElementById('export-btn'),
+    filterSearch: document.getElementById('filter-search'),
+    filterCustomer: document.getElementById('filter-customer'),
+    filterMonth: document.getElementById('filter-month')
   };
 
   let currentPhotoDataUrl = '';
@@ -134,8 +137,47 @@
     if (name === 'history') renderHistory();
   }
 
+  function readFilters() {
+    return {
+      search: els.filterSearch.value,
+      customer: els.filterCustomer.value,
+      month: els.filterMonth.value
+    };
+  }
+
+  function fillSelect(select, options, preferred) {
+    const keep = options.some((o) => o.value === preferred) ? preferred : '';
+    select.innerHTML = '';
+    options.forEach((o) => {
+      const el = document.createElement('option');
+      el.value = o.value;
+      el.textContent = o.label;
+      select.appendChild(el);
+    });
+    select.value = keep;
+  }
+
+  function rebuildFilterOptions(records) {
+    const customerOptions = [{ value: '', label: '全部客户' }];
+    listRecordCustomers(records).forEach((name) => customerOptions.push({ value: name, label: name }));
+    if (records.some((r) => !(r.customerName || '').trim())) {
+      customerOptions.push({ value: UNSPECIFIED_CUSTOMER, label: '(未指定)' });
+    }
+    fillSelect(els.filterCustomer, customerOptions, els.filterCustomer.value);
+
+    const monthOptions = [{ value: '', label: '全部月份' }];
+    listRecordMonths(records).forEach((month) => monthOptions.push({ value: month, label: month }));
+    fillSelect(els.filterMonth, monthOptions, els.filterMonth.value);
+  }
+
+  function getFilteredRecords() {
+    return filterRecords(storage.listRecords(), readFilters());
+  }
+
   function renderHistory() {
-    const records = storage.listRecords();
+    const allRecords = storage.listRecords();
+    rebuildFilterOptions(allRecords);
+    const records = filterRecords(allRecords, readFilters());
     els.historyList.innerHTML = '';
     els.historyEmpty.style.display = records.length ? 'none' : 'block';
     records.forEach((record) => {
@@ -301,13 +343,17 @@
   els.saveAsNewBtn.addEventListener('click', () => saveCurrentQuote(true));
 
   els.exportBtn.addEventListener('click', () => {
-    const records = storage.listRecords();
+    const records = getFilteredRecords();
     if (!records.length) {
       alert('暂无记录可导出');
       return;
     }
     exportRecordsToXlsx(records);
   });
+
+  els.filterSearch.addEventListener('input', renderHistory);
+  els.filterCustomer.addEventListener('change', renderHistory);
+  els.filterMonth.addEventListener('change', renderHistory);
 
   renderCustomerOptions();
   recalc();

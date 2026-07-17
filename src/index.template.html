@@ -49,6 +49,10 @@
   .history-item .delete-btn { border: none; background: #f3d1d1; border-radius: 8px; padding: 8px 10px; }
   .export-btn { width: 100%; padding: 12px; border: none; background: var(--accent); color: #fff; border-radius: 8px; margin-bottom: 12px; font-size: 15px; }
   .empty-hint { text-align: center; color: #999; padding: 30px 0; }
+  .history-filter { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .history-filter input, .history-filter select { border: 1px solid var(--border); border-radius: 8px; padding: 8px; font-size: 15px; background: #fff; min-width: 0; }
+  .history-filter .filter-search { flex: 1 1 100%; }
+  .history-filter select { flex: 1 1 0; }
 </style>
 </head>
 <body>
@@ -139,6 +143,11 @@
 
   <div class="page" id="page-history">
     <button type="button" class="export-btn" id="export-btn">导出Excel</button>
+    <div class="history-filter">
+      <input type="text" id="filter-search" class="filter-search" placeholder="搜索款号或客户名">
+      <select id="filter-customer"><option value="">全部客户</option></select>
+      <select id="filter-month"><option value="">全部月份</option></select>
+    </div>
     <div id="history-list"></div>
     <div class="empty-hint" id="history-empty" style="display:none">暂无历史记录</div>
   </div>

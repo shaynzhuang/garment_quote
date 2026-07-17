@@ -49,6 +49,10 @@
   .history-item .delete-btn { border: none; background: #f3d1d1; border-radius: 8px; padding: 8px 10px; }
   .export-btn { width: 100%; padding: 12px; border: none; background: var(--accent); color: #fff; border-radius: 8px; margin-bottom: 12px; font-size: 15px; }
   .empty-hint { text-align: center; color: #999; padding: 30px 0; }
+  .history-filter { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .history-filter input, .history-filter select { border: 1px solid var(--border); border-radius: 8px; padding: 8px; font-size: 15px; background: #fff; min-width: 0; }
+  .history-filter .filter-search { flex: 1 1 100%; }
+  .history-filter select { flex: 1 1 0; }
 </style>
 </head>
 <body>
@@ -139,6 +143,11 @@
 
   <div class="page" id="page-history">
     <button type="button" class="export-btn" id="export-btn">导出Excel</button>
+    <div class="history-filter">
+      <input type="text" id="filter-search" class="filter-search" placeholder="搜索款号或客户名">
+      <select id="filter-customer"><option value="">全部客户</option></select>
+      <select id="filter-month"><option value="">全部月份</option></select>
+    </div>
     <div id="history-list"></div>
     <div class="empty-hint" id="history-empty" style="display:none">暂无历史记录</div>
   </div>
@@ -257,7 +266,60 @@ function createStorage(backend) {
   return { listRecords, saveRecord, deleteRecord, listCustomers, addCustomer };
 }
 
-const GarmentStorage = { createStorage, STORAGE_KEY, CUSTOMERS_KEY };
+// Sentinel used by filterRecords/UI to mean "records with no customer name".
+// An empty customer/month value means "no filter".
+const UNSPECIFIED_CUSTOMER = '__UNSPECIFIED__';
+
+function filterRecords(records, filters) {
+  const { search, customer, month } = filters || {};
+  const needle = (search || '').trim().toLowerCase();
+  return records.filter((record) => {
+    if (needle) {
+      const haystack = `${record.styleNo || ''} ${record.customerName || ''}`.toLowerCase();
+      if (!haystack.includes(needle)) return false;
+    }
+    if (customer) {
+      const name = (record.customerName || '').trim();
+      if (customer === UNSPECIFIED_CUSTOMER) {
+        if (name) return false;
+      } else if (name !== customer) {
+        return false;
+      }
+    }
+    if (month) {
+      if ((record.savedAt || '').slice(0, 7) !== month) return false;
+    }
+    return true;
+  });
+}
+
+function listRecordCustomers(records) {
+  const names = [];
+  records.forEach((record) => {
+    const name = (record.customerName || '').trim();
+    if (name && !names.includes(name)) names.push(name);
+  });
+  return names;
+}
+
+function listRecordMonths(records) {
+  const months = [];
+  records.forEach((record) => {
+    const month = (record.savedAt || '').slice(0, 7);
+    if (month && !months.includes(month)) months.push(month);
+  });
+  return months.sort().reverse();
+}
+
+const GarmentStorage = {
+  createStorage,
+  filterRecords,
+  listRecordCustomers,
+  listRecordMonths,
+  UNSPECIFIED_CUSTOMER,
+  STORAGE_KEY,
+  CUSTOMERS_KEY
+};
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = GarmentStorage;
@@ -382,7 +444,7 @@ w[f]=1}i[b]=f;}}for(g=l.s.r+n;g<=l.e.r;++g){if((T[g]||{}).hidden)continue;var A=
 // src/app.js
 (function () {
   const { computeSubtotal, computeTotal } = GarmentCalc;
-  const { createStorage } = GarmentStorage;
+  const { createStorage, filterRecords, listRecordCustomers, listRecordMonths, UNSPECIFIED_CUSTOMER } = GarmentStorage;
   const { compressImageFile } = GarmentImage;
   const { exportRecordsToXlsx } = GarmentExport;
 
@@ -423,7 +485,10 @@ w[f]=1}i[b]=f;}}for(g=l.s.r+n;g<=l.e.r;++g){if((T[g]||{}).hidden)continue;var A=
     saveAsNewBtn: document.getElementById('save-as-new-btn'),
     historyList: document.getElementById('history-list'),
     historyEmpty: document.getElementById('history-empty'),
-    exportBtn: document.getElementById('export-btn')
+    exportBtn: document.getElementById('export-btn'),
+    filterSearch: document.getElementById('filter-search'),
+    filterCustomer: document.getElementById('filter-customer'),
+    filterMonth: document.getElementById('filter-month')
   };
 
   let currentPhotoDataUrl = '';
@@ -515,8 +580,47 @@ w[f]=1}i[b]=f;}}for(g=l.s.r+n;g<=l.e.r;++g){if((T[g]||{}).hidden)continue;var A=
     if (name === 'history') renderHistory();
   }
 
+  function readFilters() {
+    return {
+      search: els.filterSearch.value,
+      customer: els.filterCustomer.value,
+      month: els.filterMonth.value
+    };
+  }
+
+  function fillSelect(select, options, preferred) {
+    const keep = options.some((o) => o.value === preferred) ? preferred : '';
+    select.innerHTML = '';
+    options.forEach((o) => {
+      const el = document.createElement('option');
+      el.value = o.value;
+      el.textContent = o.label;
+      select.appendChild(el);
+    });
+    select.value = keep;
+  }
+
+  function rebuildFilterOptions(records) {
+    const customerOptions = [{ value: '', label: '全部客户' }];
+    listRecordCustomers(records).forEach((name) => customerOptions.push({ value: name, label: name }));
+    if (records.some((r) => !(r.customerName || '').trim())) {
+      customerOptions.push({ value: UNSPECIFIED_CUSTOMER, label: '(未指定)' });
+    }
+    fillSelect(els.filterCustomer, customerOptions, els.filterCustomer.value);
+
+    const monthOptions = [{ value: '', label: '全部月份' }];
+    listRecordMonths(records).forEach((month) => monthOptions.push({ value: month, label: month }));
+    fillSelect(els.filterMonth, monthOptions, els.filterMonth.value);
+  }
+
+  function getFilteredRecords() {
+    return filterRecords(storage.listRecords(), readFilters());
+  }
+
   function renderHistory() {
-    const records = storage.listRecords();
+    const allRecords = storage.listRecords();
+    rebuildFilterOptions(allRecords);
+    const records = filterRecords(allRecords, readFilters());
     els.historyList.innerHTML = '';
     els.historyEmpty.style.display = records.length ? 'none' : 'block';
     records.forEach((record) => {
@@ -682,13 +786,17 @@ w[f]=1}i[b]=f;}}for(g=l.s.r+n;g<=l.e.r;++g){if((T[g]||{}).hidden)continue;var A=
   els.saveAsNewBtn.addEventListener('click', () => saveCurrentQuote(true));
 
   els.exportBtn.addEventListener('click', () => {
-    const records = storage.listRecords();
+    const records = getFilteredRecords();
     if (!records.length) {
       alert('暂无记录可导出');
       return;
     }
     exportRecordsToXlsx(records);
   });
+
+  els.filterSearch.addEventListener('input', renderHistory);
+  els.filterCustomer.addEventListener('change', renderHistory);
+  els.filterMonth.addEventListener('change', renderHistory);
 
   renderCustomerOptions();
   recalc();

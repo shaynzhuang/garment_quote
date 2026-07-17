@@ -58,7 +58,60 @@ function createStorage(backend) {
   return { listRecords, saveRecord, deleteRecord, listCustomers, addCustomer };
 }
 
-const GarmentStorage = { createStorage, STORAGE_KEY, CUSTOMERS_KEY };
+// Sentinel used by filterRecords/UI to mean "records with no customer name".
+// An empty customer/month value means "no filter".
+const UNSPECIFIED_CUSTOMER = '__UNSPECIFIED__';
+
+function filterRecords(records, filters) {
+  const { search, customer, month } = filters || {};
+  const needle = (search || '').trim().toLowerCase();
+  return records.filter((record) => {
+    if (needle) {
+      const haystack = `${record.styleNo || ''} ${record.customerName || ''}`.toLowerCase();
+      if (!haystack.includes(needle)) return false;
+    }
+    if (customer) {
+      const name = (record.customerName || '').trim();
+      if (customer === UNSPECIFIED_CUSTOMER) {
+        if (name) return false;
+      } else if (name !== customer) {
+        return false;
+      }
+    }
+    if (month) {
+      if ((record.savedAt || '').slice(0, 7) !== month) return false;
+    }
+    return true;
+  });
+}
+
+function listRecordCustomers(records) {
+  const names = [];
+  records.forEach((record) => {
+    const name = (record.customerName || '').trim();
+    if (name && !names.includes(name)) names.push(name);
+  });
+  return names;
+}
+
+function listRecordMonths(records) {
+  const months = [];
+  records.forEach((record) => {
+    const month = (record.savedAt || '').slice(0, 7);
+    if (month && !months.includes(month)) months.push(month);
+  });
+  return months.sort().reverse();
+}
+
+const GarmentStorage = {
+  createStorage,
+  filterRecords,
+  listRecordCustomers,
+  listRecordMonths,
+  UNSPECIFIED_CUSTOMER,
+  STORAGE_KEY,
+  CUSTOMERS_KEY
+};
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = GarmentStorage;
